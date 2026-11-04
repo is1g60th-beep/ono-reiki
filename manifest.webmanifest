@@ -1,0 +1,16 @@
+{
+  "name": "大野町例規検索",
+  "short_name": "例規検索",
+  "description": "岐阜県揖斐郡大野町の条例・規則を名称・編・種別で検索",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f5f2",
+  "theme_color": "#b8492a",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
