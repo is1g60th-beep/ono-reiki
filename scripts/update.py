@@ -31,6 +31,7 @@ WAIT = 0.6            # 町のサーバーに負担をかけないよう、1リ�
 MAX_TAIKEI = 400
 MAX_CHANGES = 300
 JST = dt.timezone(dt.timedelta(hours=9))
+EXTRACT_VERSION = 2  # 本文の取り出し方を変えたら上げる（その回は改正の判定をしない）
 
 ERA = r"(?:明治|大正|昭和|平成|令和)(?:元|\d+)年\d+月\d+日"
 RE_HONBUN = re.compile(r"reiki_honbun/([A-Za-z0-9]+)\.html")
@@ -243,10 +244,17 @@ def strip_boilerplate(bodies: dict[str, str]) -> dict[str, str]:
     freq = Counter()
     for t in bodies.values():
         freq.update(set(t.split("\n")))
-    common = {line for line, n in freq.items() if n >= len(bodies) * 0.5}
+    keep = re.compile(r"^(附則|本則|第\d+[条項号]|[(（].+[)）])$")  # 条文の見出しは残す
+    common = {line for line, n in freq.items() if n >= len(bodies) * 0.6 and not keep.match(line)}
     if common:
         log(f"共通行を除去: {sorted(common)[:15]}")
     return {k: "\n".join(x for x in t.split("\n") if x not in common) for k, t in bodies.items()}
+
+
+def cut_toc(text: str, name: str) -> str:
+    """本文の後ろに付く「体系情報・条項目次」の欄を切り落とす。"""
+    i = text.rfind("\n" + name + "\n")
+    return text[:i] if i > len(text) * 0.3 else text
 
 
 def digest(text: str) -> str:
@@ -282,6 +290,7 @@ def main() -> int:
     for n, r in enumerate(items, 1):
         t = fetch_body(r["id"])
         if t:
+            t = cut_toc(t, r["name"])
             bodies[r["id"]] = t
         else:
             failed.append(r["id"])
@@ -294,7 +303,9 @@ def main() -> int:
     log(f"本文 {len(bodies)}件取得, 失敗 {len(failed)}件")
 
     today = dt.datetime.now(JST).date().isoformat()
-    baseline = not any(v.get("hash") for v in prev_items.values())
+    baseline = not any(v.get("hash") for v in prev_items.values()) or prev.get("extract_version") != EXTRACT_VERSION
+    if baseline:
+        log("基準となるデータを作り直します（今回は追加・改正を記録しません）")
     new_changes = []
     for r in items:
         if r["id"] in bodies:
@@ -321,6 +332,7 @@ def main() -> int:
     dump("reiki.json", {
         "checked": today,
         "baseline": prev.get("baseline") or (today if baseline else None),
+        "extract_version": EXTRACT_VERSION,
         "source": START,
         "count": len(items),
         "items": items,
