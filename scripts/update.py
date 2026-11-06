@@ -34,7 +34,7 @@ JST = dt.timezone(dt.timedelta(hours=9))
 
 ERA = r"(?:明治|大正|昭和|平成|令和)(?:元|\d+)年\d+月\d+日"
 RE_HONBUN = re.compile(r"reiki_honbun/([A-Za-z0-9]+)\.html")
-RE_TAIKEI = re.compile(r"reiki_taikei/r_taikei_[0-9_]+\.html")
+RE_TAIKEI = re.compile(r"r_taikei_[0-9_]+\.html")
 RE_KIND = re.compile(r"(条例|規則|告示|訓令|規程|要綱|種別なし|第\d+号)")
 
 
@@ -187,6 +187,8 @@ def crawl_index(prev_cat: dict[str, str]) -> list[dict]:
                 nxt = urljoin(url, href).split("#")[0]
                 if nxt not in seen:
                     queue.append(nxt)
+        if len(seen) == 1:
+            log("  先頭ページのリンク例: " + ", ".join(p.links[:40]))
         page_rows = []
         for row in p.rows:
             hit = next(((h, t) for h, t in row["links"] if RE_HONBUN.search(h)), None)
